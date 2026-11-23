@@ -1,0 +1,15 @@
+close all; clear; clc;
+a = arduino("COM4","ESP32-WROOM-DevKitV1");
+ledPin = 'D2';
+configurePin(a, ledPin, 'DigitalOutput');
+% configurePin(a, 'D34', 'AnalogInput');
+% Not sure if needed?
+
+while true
+    writeDigitalPin(a, ledPin, 1);
+    pause(0.5);
+    writeDigitalPin(a, ledPin, 0);
+    pause(0.5);
+    reading = readVoltage(a, 'D34');
+    disp(reading);
+end
