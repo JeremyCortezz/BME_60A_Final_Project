@@ -1,0 +1,18 @@
+close all; clear; clc;
+
+% This code tests the ESP32 activation
+% Correct the serial port to YOUR ESP32 port (Jeremy's is "/dev/tty.usbserial-0001")
+
+% Setup the LED Pin to D21
+% Setup the Photoresistor to Analog D34
+
+ESP32 = arduino("/dev/tty.usbserial-0001","ESP32-WROOM-DevKitV1");
+LED1 = 'D21';
+configurePin(ESP32, LED1, 'DigitalOutput');
+configurePin(ESP32, 'D34', 'AnalogInput');
+
+while true
+    writeDigitalPin(ESP32, LED1, 1);
+    reading = readVoltage(ESP32, 'D34');
+    disp(reading);
+end
