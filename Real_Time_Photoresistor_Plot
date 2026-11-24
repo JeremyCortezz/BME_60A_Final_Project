@@ -1,0 +1,72 @@
+
+close all;
+clear;
+clc;
+
+% Connect to ESP32
+ESP32 = arduino("/dev/tty.usbserial-0001", "ESP32-WROOM-DevKitV1");
+
+% Define pins
+LED1 = 'D21';
+PHOTORESISTOR = 'D34';
+
+% Configure pins
+configurePin(ESP32, LED1, 'DigitalOutput');
+configurePin(ESP32, PHOTORESISTOR, 'AnalogInput');
+
+% Turn LED ON
+writeDigitalPin(ESP32, LED1, 1);
+
+% Initialize time
+startTime = tic;
+
+% Initialize data arrays
+timeData = [];
+voltageData = [];
+
+% Create figure
+figure('Name', 'Real-Time Photoresistor Monitoring');
+
+% Initialize plot
+h = animatedline('Color', 'b', 'LineWidth', 1.5);
+
+xlabel('Time (seconds)');
+ylabel('Voltage (V)');
+title('Real-Time Photoresistor Voltage');
+grid on;
+
+ylim([0 3.3]);
+
+% Real-time data acquisition
+while ishandle(gcf)
+
+    % Record elapsed time
+    currentTime = toc(startTime);
+
+    % Read photoresistor voltage
+    reading = readVoltage(ESP32, PHOTORESISTOR);
+
+    % Store data
+    timeData(end+1) = currentTime;
+    voltageData(end+1) = reading;
+
+    % Update graph
+    addpoints(h, currentTime, reading);
+
+    % Automatically adjust x-axis
+    xlim([max(0, currentTime-20), max(20, currentTime)]);
+
+    % Refresh graph
+    drawnow limitrate;
+
+    % Display voltage
+    fprintf('Time: %.2f s | Voltage: %.3f V\n', ...
+        currentTime, reading);
+
+    % Sampling interval
+    pause(0.05);
+
+end
+
+% Turn off LED when finished
+writeDigitalPin(ESP32, LED1, 0);
