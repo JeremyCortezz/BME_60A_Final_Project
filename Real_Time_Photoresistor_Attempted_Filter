@@ -1,0 +1,79 @@
+
+close all; clear; clc;
+
+% Connect to ESP32
+ESP32 = arduino("/dev/tty.usbserial-0001", "ESP32-WROOM-DevKitV1");
+
+% Define pins
+LED1 = 'D35';
+PHOTORESISTOR = 'D34';
+Thermometer = 'D32';
+
+configurePin(ESP32, LED1, 'DigitalOutput');
+configurePin(ESP32, PHOTORESISTOR, 'AnalogInput');
+
+% Turn LED ON
+writeDigitalPin(ESP32, LED1, 1);
+
+% Sampling settings
+windowSize = 5;
+sampleInterval = 0.05;
+
+% Initialize variables
+startTime = tic;
+voltageBuffer = zeros(1, windowSize);
+bufferIndex = 1;
+
+% Create figure
+figure('Name', 'Real-Time Heart Rate Signal');
+
+% Raw signal
+rawPlot = animatedline('Color', [0.7 0.7 0.7], ...
+    'LineWidth', 0.8);
+
+% Filtered signal
+filteredPlot = animatedline('Color', 'b', ...
+    'LineWidth', 1.8);
+
+xlabel('Time (seconds)');
+ylabel('Voltage (V)');
+title('Photoresistor Signal: Raw vs Filtered');
+
+legend('Raw Signal', 'Smoothed Signal');
+grid on;
+
+ylim([0 3.3]);
+
+% Data acquisition
+while ishandle(gcf)
+
+    % Get time
+    t = toc(startTime);
+
+    % Read sensor
+    reading = readVoltage(ESP32, PHOTORESISTOR);
+
+    % Update moving average buffer
+    voltageBuffer(bufferIndex) = reading;
+
+    bufferIndex = mod(bufferIndex, windowSize) + 1;
+
+    % Calculate filtered voltage
+    filteredVoltage = mean(voltageBuffer);
+
+    % Plot raw and filtered signals
+    addpoints(rawPlot, t, reading);
+    addpoints(filteredPlot, t, filteredVoltage);
+
+    % Keep last 20 seconds visible
+    xlim([max(0,t-20), max(20,t)]);
+
+    % Refresh graph
+    drawnow limitrate;
+
+    pause(sampleInterval);
+
+end
+
+% Turn off LED when figure closes
+writeDigitalPin(ESP32, LED1, 0);
