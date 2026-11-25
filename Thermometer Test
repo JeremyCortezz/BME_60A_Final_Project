@@ -1,0 +1,14 @@
+close all; clear; clc;
+
+% Connect to the ESP32
+ESP32 = arduino("/dev/tty.usbserial-0001","ESP32-WROOM-DevKitV1");
+
+% Configure DHT11 on GPIO 27
+Thermometer = addon(ESP32, "DHT11", "D27");
+
+% Read temperature and humidity
+temperature = readTemperature(Thermometer);
+humidity = readHumidity(Thermometer);
+
+fprintf("Temperature: %.1f °C\n", temperature);
+fprintf("Humidity: %.1f %%\n", humidity);
