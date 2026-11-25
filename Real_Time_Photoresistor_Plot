@@ -35,8 +35,6 @@ ylabel('Voltage (V)');
 title('Real-Time Photoresistor Voltage');
 grid on;
 
-ylim([0 3.3]);
-
 % Real-time data acquisition
 while ishandle(gcf)
 
@@ -59,14 +57,8 @@ while ishandle(gcf)
     % Refresh graph
     drawnow limitrate;
 
-    % Display voltage
-    fprintf('Time: %.2f s | Voltage: %.3f V\n', ...
-        currentTime, reading);
-
-    % Sampling interval
-    pause(0.05);
-
 end
 
 % Turn off LED when finished
 writeDigitalPin(ESP32, LED1, 0);
+writetable(table(timeData', voltageData', 'VariableNames', {'Time_s', 'Voltage_V'}), 'ppg_data.csv');
