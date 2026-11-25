@@ -1,0 +1,127 @@
+close all; clear; clc;
+%% ESP32 Setup
+% Configure ESP32 variable/object
+ESP32 = arduino("COM4", "ESP32-WROOM-DevKitV1");
+
+% Define pins
+LED1 = 'D32';
+PHOTORESISTOR = 'D34';
+Thermometer = 'D25';
+configurePin(ESP32, LED1, 'DigitalOutput');
+configurePin(ESP32, PHOTORESISTOR, 'AnalogInput');
+
+% Turn LED on (stays on constantly)
+writeDigitalPin(ESP32, LED1, 1);
+
+%% Signal Processing Setup
+% Sampling settings
+windowSize = 10;
+fs = 100; % Sampling frequency
+fn = fs/2; % Nyquist frequency
+
+% Creates lowpass Buttersworth filter coefficients
+% captures baseline/low frequency noise to subtract out later
+[bBaseline, aBaseline] = butter(2, 0.3/fn, 'low');
+
+% Creates bandpass Buttersworth filter coefficients
+% captures frequencies plausible to be heartrate
+% 0.3 Hz lower bound = 30 BPM
+% 4 Hz upper bound = 240 BPM
+[bHeart, aHeart] = butter(2, [0.3 5]/fn, 'bandpass');
+
+% Creates memory variables to store internal states/history
+memBaseline = zeros(2,1);
+memHeart = zeros(4,1);
+% Second order Buttersworth filters mean...
+% 2 states need to be saved for lowpass
+% 4 states for bandpass
+
+% Create figure
+figure('Name', 'Real-Time Heart Rate Signal');
+
+% Raw signal
+subplot(3,1,1);
+rawPlot = animatedline('Color', [0.7 0.7 0.7], ...
+    'LineWidth', 0.8);
+title('Raw Photoresistor Signal');
+grid on;
+
+% Baseline signal
+subplot(3,1,2);
+baselinePlot = animatedline('Color', 'b', ...
+    'LineWidth', 1.8);
+title('Baseline Signal');
+grid on;
+
+% Heartbeat signal
+subplot(3,1,3);
+heartPlot = animatedline('Color', 'r', ...
+    'LineWidth', 1.8);
+title('Heartbeat');
+grid on;
+
+%% Buffer and Plotting Setup
+% Initialize variables
+startTime = tic;
+voltageBuffer = zeros(1, windowSize);
+bufferIndex = 1;
+i = 0;
+
+%{
+xlabel('Time (seconds)');
+ylabel('Voltage (V)');
+title('Photoresistor Signal: Raw vs Filtered');
+
+legend('Raw Signal', 'Smoothed Signal');
+grid on;
+
+ylim([0 3.3]);
+%}
+
+%% Real-time Data Acquisition and Analysis
+while ishandle(gcf)
+
+    % Get time
+    t = toc(startTime);
+
+    % Read sensor
+    reading = readVoltage(ESP32, PHOTORESISTOR);
+
+    % Update moving average buffer
+    
+    % bufferIndex = mod(bufferIndex, windowSize) + 1;
+
+    % Calculate filtered voltage
+    [baseline, memBaseline] = filter(bBaseline,aBaseline,reading,memBaseline);
+    [heartbeat, memHeart] = filter(bHeart,aHeart,reading,memHeart);
+
+    % Plot raw and filtered signals
+    addpoints(rawPlot, t, reading);
+    addpoints(baselinePlot, t, baseline);
+    addpoints(heartPlot, t, heartbeat);
+%{
+
+    % Read temperature and humidity
+    temperature = readTemperature(Thermometer);
+    humidity = readHumidity(Thermometer);
+
+    % Keep last 20 seconds visible
+    xlim([max(0,t-20), max(20,t)]);
+    if i <= 10
+       i = i + 1;
+    else
+        lower = prctile(voltageBuffer, 5);
+        upper = prctile(voltageBuffer, 95);
+        ylim([lower - 0.1, upper + 0.1]);
+        i = 0;
+    end
+%}
+    % Refresh graph
+    drawnow limitrate;
+
+    pause(1/fs);
+
+end
+
+% Turn off LED when figure closes
+writeDigitalPin(ESP32, LED1, 0);
