@@ -1,0 +1,28 @@
+
+% BME 60A - Wireless ESP32 Connection
+
+% Clear previous connection
+clear a
+
+% Connect to ESP32 through Wi-Fi
+a = arduino("192.168.0.49", "ESP32-WROOM-DevKitC");
+
+% Turn LED ON at D2
+writeDigitalPin(a, "D2", 1);
+
+% Wait 2 seconds
+pause(2);
+
+% Turn LED OFF
+writeDigitalPin(a, "D2", 0);
+
+% Display confirmation
+disp("Wireless ESP32 control successful!");
+
+% 1. connect the esp32 to your mac using a USB cable and open matlab
+% 2. in the matlab command window, clear any existing connections by entering clear a and arduinosetup
+% 3. select ESP32 as the board, ESP32-WROOM-DevKitC as the baord and your USB serial port
+% 4. select wifi as the connection when prompted and make sure you are using the same wifi 
+% 5. follow the setup wizard to upload/program the Aruino Server onto your ESP32. wait for the upload to complete and test connection. 
+% 6. Once setup is complete, identify your ESP32's Wifi IP address and paste the address into 
+% 7. a = arduino("INPUT YOUR IP-ADDRESS", "ESP32-WROOM-DevKitC");
